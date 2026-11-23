@@ -3,5 +3,8 @@ package com.murqin.nocroptrample;
 public enum StateName {
     EMPTY,
     PLAYER,
-    MOB
+    MOB,
+    FARMER_VILLAGER,
+    BABY_VILLAGER,
+    OTHER_VILLAGER
 }
