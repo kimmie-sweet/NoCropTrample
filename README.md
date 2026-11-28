@@ -20,11 +20,11 @@ The same test with each setting off and on.
 | **Mob** | <img src="https://raw.githubusercontent.com/murqin/NoCropTrample/main/assets/mob-trampling-prevention-off.gif" alt="Mob trampling prevention off: farmland turns to dirt" width="320"> | <img src="https://raw.githubusercontent.com/murqin/NoCropTrample/main/assets/mob-trampling-prevention-on.gif" alt="Mob trampling prevention on: farmland stays intact" width="320"> |
 | **Empty farmland** | <img src="https://raw.githubusercontent.com/murqin/NoCropTrample/main/assets/empty-trampling-prevention-off.gif" alt="Empty farmland trampling prevention off: farmland turns to dirt" width="320"> | <img src="https://raw.githubusercontent.com/murqin/NoCropTrample/main/assets/empty-trampling-prevention-on.gif" alt="Empty farmland trampling prevention on: farmland stays intact" width="320"> |
 
-Empty farmland protection only affects unplanted farmland; planted farmland follows the player and mob settings.
+The ten entity-category settings are independent: five apply when a crop is planted above the farmland, and five apply when the farmland is empty. All ten prevention settings default to `false` (OFF).
 
 ## Features
 
-- **Independent toggles** for players, non-villager mobs, farmer villagers, baby villagers, other adult villagers, and empty (unplanted) farmland.
+- **Ten independent toggles:** players, adult farmer villagers, baby villagers, other adult villagers, and non-villager mobs, each separately for crop-covered farmland and empty farmland.
 - **Mounted players follow player rules** — horses, camels, pigs, and other player-controlled mounts use player rules (including Feather Falling).
 - **Optional survival balance:**
   - **Min Feather Falling (`0–4`)** — require boots with at least that Feather Falling level before player protection applies.
@@ -43,16 +43,20 @@ Empty farmland protection only affects unplanted farmland; planted farmland foll
 
 Viewing status works for everyone; changing settings requires OP permission level 2 (OPs also get clickable controls in `/nocroptrample status`).
 
-| Setting | Default | Command | GameRule |
-|---|---|---|---|
-| Empty farmland | `true` | `/nocroptrample empty [on\|off]` | `nocroptrample:prevent_empty_trampling` |
-| Players & mounts | `true` | `/nocroptrample player [on\|off]` | `nocroptrample:prevent_player_trampling` |
-| Non-villager mobs | `false` | `/nocroptrample mob [on\|off]` | `nocroptrample:prevent_mob_trampling` |
-| Adult farmer villagers | `true` | `/nocroptrample farmerVillager [on\|off]` | `nocroptrample:prevent_farmer_villager_trampling` |
-| Baby villagers | `true` | `/nocroptrample babyVillager [on\|off]` | `nocroptrample:prevent_baby_villager_trampling` |
-| Other adult villagers | `true` | `/nocroptrample otherVillager [on\|off]` | `nocroptrample:prevent_other_villager_trampling` |
-| Min Feather Falling | `0` (off) | `/nocroptrample featherfalling [0-4]` | `nocroptrample:min_feather_falling_level` |
-| Max safe fall | `0` (unlimited) | `/nocroptrample falldistance [0-100]` | `nocroptrample:max_safe_fall_distance` |
+| Farmland type | Category | Default | Command | GameRule |
+|---|---|---:|---|---|
+| Crop-covered | Player (and mounts) | `false` | `/nocroptrample player [on\|off]` | `nocroptrample:prevent_player_trampling` |
+| Crop-covered | Adult farmer villagers | `false` | `/nocroptrample farmerVillager [on\|off]` | `nocroptrample:prevent_farmer_villager_trampling` |
+| Crop-covered | Baby villagers | `false` | `/nocroptrample babyVillager [on\|off]` | `nocroptrample:prevent_baby_villager_trampling` |
+| Crop-covered | Other adult villagers | `false` | `/nocroptrample otherVillager [on\|off]` | `nocroptrample:prevent_other_villager_trampling` |
+| Crop-covered | Other mobs | `false` | `/nocroptrample mob [on\|off]` | `nocroptrample:prevent_mob_trampling` |
+| Empty | Player (and mounts) | `false` | `/nocroptrample emptyPlayer [on\|off]` | `nocroptrample:prevent_empty_player_trampling` |
+| Empty | Adult farmer villagers | `false` | `/nocroptrample emptyFarmerVillager [on\|off]` | `nocroptrample:prevent_empty_farmer_villager_trampling` |
+| Empty | Baby villagers | `false` | `/nocroptrample emptyBabyVillager [on\|off]` | `nocroptrample:prevent_empty_baby_villager_trampling` |
+| Empty | Other adult villagers | `false` | `/nocroptrample emptyOtherVillager [on\|off]` | `nocroptrample:prevent_empty_other_villager_trampling` |
+| Empty | Other mobs | `false` | `/nocroptrample emptyMob [on\|off]` | `nocroptrample:prevent_empty_mob_trampling` |
+| Both | Min Feather Falling | `0` (off) | `/nocroptrample featherfalling [0-4]` | `nocroptrample:min_feather_falling_level` |
+| Both | Max safe fall | `0` (unlimited) | `/nocroptrample falldistance [0-100]` | `nocroptrample:max_safe_fall_distance` |
 
 Utility commands:
 
@@ -66,12 +70,16 @@ Utility commands:
 
 ```json
 {
-  "preventEmptyTrampling": true,
   "preventPlayerTrampling": false,
-  "preventMobTrampling": false,
-  "preventFarmerVillagerTrampling": true,
+  "preventFarmerVillagerTrampling": false,
   "preventBabyVillagerTrampling": false,
   "preventOtherVillagerTrampling": false,
+  "preventMobTrampling": false,
+  "preventEmptyPlayerTrampling": false,
+  "preventEmptyFarmerVillagerTrampling": false,
+  "preventEmptyBabyVillagerTrampling": false,
+  "preventEmptyOtherVillagerTrampling": false,
+  "preventEmptyMobTrampling": false,
   "minFeatherFallingLevel": 0,
   "maxSafeFallDistance": 0
 }

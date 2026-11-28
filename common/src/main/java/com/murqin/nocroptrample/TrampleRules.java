@@ -66,72 +66,43 @@ public final class TrampleRules {
             return true;
         }
 
+        ConfigSnapshot config;
         if (level instanceof ServerLevel serverLevel && ModGameRules.isRegistered()) {
-            GameRules rules = serverLevel.getGameRules();
-            int maxSafeFall = rules.get(ModGameRules.maxSafeFallDistance);
-            if (maxSafeFall > 0 && fallDistance > maxSafeFall + FARMLAND_DEPTH_TOLERANCE) {
-                return false;
-            }
-
-            boolean preventEmpty = rules.get(ModGameRules.preventEmptyTrampling);
-            boolean targetRule = targetRule(entity, isPlayer,
-                    rules.get(ModGameRules.preventPlayerTrampling),
-                    rules.get(ModGameRules.preventMobTrampling),
-                    rules.get(ModGameRules.preventFarmerVillagerTrampling),
-                    rules.get(ModGameRules.preventBabyVillagerTrampling),
-                    rules.get(ModGameRules.preventOtherVillagerTrampling));
-
-            // Skip pos.above() allocation and chunk lookup when empty and target agree
-            boolean baseAllowed = (preventEmpty == targetRule)
-                    ? targetRule
-                    : (isCropAbove(level, pos) ? targetRule : preventEmpty);
-            if (!baseAllowed) {
-                return false;
-            }
-
-            if (isPlayer) {
-                int minFF = rules.get(ModGameRules.minFeatherFallingLevel);
-                if (minFF > 0) {
-                    return getFeatherFallingLevel(controllingPlayer, level) >= minFF;
-                }
-            }
-            return true;
+            config = ModGameRules.snapshot(serverLevel.getGameRules());
+        } else {
+            config = ModConfig.snapshot();
         }
-
-        ConfigSnapshot config = ModConfig.snapshot();
         if (config.maxSafeFallDistance() > 0
                 && fallDistance > config.maxSafeFallDistance() + FARMLAND_DEPTH_TOLERANCE) {
             return false;
         }
-
-        boolean preventEmpty = config.preventEmptyTrampling();
-        boolean targetRule = targetRule(entity, isPlayer,
-                config.preventPlayerTrampling(), config.preventMobTrampling(),
-                config.preventFarmerVillagerTrampling(), config.preventBabyVillagerTrampling(),
-                config.preventOtherVillagerTrampling());
-        boolean baseAllowed = (preventEmpty == targetRule)
-                ? targetRule
-                : (isCropAbove(level, pos) ? targetRule : preventEmpty);
-        if (!baseAllowed) {
-            return false;
-        }
-
+        boolean cropAbove = isCropAbove(level, pos);
+        boolean prevent = categoryRule(entity, isPlayer, cropAbove, config);
+        if (!prevent) return false;
         if (isPlayer && config.minFeatherFallingLevel() > 0) {
             return getFeatherFallingLevel(controllingPlayer, level) >= config.minFeatherFallingLevel();
         }
         return true;
     }
 
-    private static boolean targetRule(Entity entity, boolean isPlayer, boolean player, boolean mob,
-                                       boolean farmerVillager, boolean babyVillager, boolean otherVillager) {
-        boolean isVillager = entity instanceof Villager;
-        boolean isBaby = isVillager && ((Villager) entity).isBaby();
-        boolean isFarmer = isVillager && !isBaby
-                && ((Villager) entity).getVillagerData().profession().is(VillagerProfession.FARMER);
-        return categoryRule(isPlayer, isVillager, isBaby, isFarmer,
-                player, mob, farmerVillager, babyVillager, otherVillager);
+    static boolean categoryRule(boolean isPlayer, boolean isVillager, boolean isBaby, boolean isFarmer,
+                                boolean cropAbove, ConfigSnapshot c) {
+        if (isPlayer) return cropAbove ? c.preventPlayerTrampling() : c.preventEmptyPlayerTrampling();
+        if (!isVillager) return cropAbove ? c.preventMobTrampling() : c.preventEmptyMobTrampling();
+        if (isBaby) return cropAbove ? c.preventBabyVillagerTrampling() : c.preventEmptyBabyVillagerTrampling();
+        if (isFarmer) return cropAbove ? c.preventFarmerVillagerTrampling() : c.preventEmptyFarmerVillagerTrampling();
+        return cropAbove ? c.preventOtherVillagerTrampling() : c.preventEmptyOtherVillagerTrampling();
     }
 
+    private static boolean categoryRule(Entity entity, boolean isPlayer, boolean cropAbove, ConfigSnapshot c) {
+        boolean villager = entity instanceof Villager;
+        boolean baby = villager && ((Villager) entity).isBaby();
+        boolean farmer = villager && !baby
+                && ((Villager) entity).getVillagerData().profession().is(VillagerProfession.FARMER);
+        return categoryRule(isPlayer, villager, baby, farmer, cropAbove, c);
+    }
+
+    // Legacy pure helpers retained for the existing unit tests and integrations.
     static boolean categoryRule(boolean isPlayer, boolean isVillager, boolean isBaby, boolean isFarmer,
                                 boolean player, boolean mob, boolean farmerVillager,
                                 boolean babyVillager, boolean otherVillager) {
@@ -141,40 +112,17 @@ public final class TrampleRules {
         return isFarmer ? farmerVillager : otherVillager;
     }
 
-    /**
-     * Pure decision, no Minecraft types involved — unit testable without a
-     * game runtime.
-     */
-    static boolean shouldCancel(
-            boolean isEmpty,
-            boolean isPlayer,
-            boolean alwaysTrample,
-            boolean trampleExempt,
-            double fallDistance,
-            int playerFeatherFallingLevel,
-            ConfigSnapshot config) {
-        if (alwaysTrample) {
-            return false;
-        }
-        if (trampleExempt) {
-            return true;
-        }
+    static boolean shouldCancel(boolean isEmpty, boolean isPlayer, boolean alwaysTrample, boolean trampleExempt,
+                                double fallDistance, int playerFeatherFallingLevel, ConfigSnapshot config) {
+        if (alwaysTrample) return false;
+        if (trampleExempt) return true;
         if (config.maxSafeFallDistance() > 0
-                && fallDistance > config.maxSafeFallDistance() + FARMLAND_DEPTH_TOLERANCE) {
-            return false;
-        }
-
-        boolean baseAllowed = isEmpty
-                ? config.preventEmptyTrampling()
+                && fallDistance > config.maxSafeFallDistance() + FARMLAND_DEPTH_TOLERANCE) return false;
+        boolean prevent = isEmpty ? config.preventEmptyTrampling()
                 : (isPlayer ? config.preventPlayerTrampling() : config.preventMobTrampling());
-        if (!baseAllowed) {
-            return false;
-        }
-
-        if (isPlayer && config.minFeatherFallingLevel() > 0) {
-            return playerFeatherFallingLevel >= config.minFeatherFallingLevel();
-        }
-        return true;
+        if (!prevent) return false;
+        return !isPlayer || config.minFeatherFallingLevel() == 0
+                || playerFeatherFallingLevel >= config.minFeatherFallingLevel();
     }
 
     private static boolean isEntityOrRiderInTag(Entity entity, Player controllingPlayer, TagKey<EntityType<?>> tag) {

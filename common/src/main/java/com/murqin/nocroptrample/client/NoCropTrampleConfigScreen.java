@@ -324,12 +324,12 @@ public class NoCropTrampleConfigScreen extends Screen {
                             flushPendingSlider();
                             boolean next = !this.workingSnapshot.preventEmptyTrampling();
                             ConfigSnapshot updated = new ConfigSnapshot(
-                                    next,
                                     this.workingSnapshot.preventPlayerTrampling(),
-                                    this.workingSnapshot.preventMobTrampling(),
                                     this.workingSnapshot.preventFarmerVillagerTrampling(),
                                     this.workingSnapshot.preventBabyVillagerTrampling(),
                                     this.workingSnapshot.preventOtherVillagerTrampling(),
+                                    this.workingSnapshot.preventMobTrampling(),
+                                    next, next, next, next, next,
                                     this.workingSnapshot.minFeatherFallingLevel(),
                                     this.workingSnapshot.maxSafeFallDistance());
                             commitSingleChange(updated, server -> ModGameRules.setPreventEmptyTrampling(server, next));
@@ -347,12 +347,16 @@ public class NoCropTrampleConfigScreen extends Screen {
                             flushPendingSlider();
                             boolean next = !this.workingSnapshot.preventPlayerTrampling();
                             ConfigSnapshot updated = new ConfigSnapshot(
-                                    this.workingSnapshot.preventEmptyTrampling(),
                                     next,
-                                    this.workingSnapshot.preventMobTrampling(),
                                     this.workingSnapshot.preventFarmerVillagerTrampling(),
                                     this.workingSnapshot.preventBabyVillagerTrampling(),
                                     this.workingSnapshot.preventOtherVillagerTrampling(),
+                                    this.workingSnapshot.preventMobTrampling(),
+                                    this.workingSnapshot.preventEmptyPlayerTrampling(),
+                                    this.workingSnapshot.preventEmptyFarmerVillagerTrampling(),
+                                    this.workingSnapshot.preventEmptyBabyVillagerTrampling(),
+                                    this.workingSnapshot.preventEmptyOtherVillagerTrampling(),
+                                    this.workingSnapshot.preventEmptyMobTrampling(),
                                     this.workingSnapshot.minFeatherFallingLevel(),
                                     this.workingSnapshot.maxSafeFallDistance());
                             commitSingleChange(updated, server -> ModGameRules.setPreventPlayerTrampling(server, next));
@@ -370,12 +374,16 @@ public class NoCropTrampleConfigScreen extends Screen {
                             flushPendingSlider();
                             boolean next = !this.workingSnapshot.preventMobTrampling();
                             ConfigSnapshot updated = new ConfigSnapshot(
-                                    this.workingSnapshot.preventEmptyTrampling(),
                                     this.workingSnapshot.preventPlayerTrampling(),
-                                    next,
                                     this.workingSnapshot.preventFarmerVillagerTrampling(),
                                     this.workingSnapshot.preventBabyVillagerTrampling(),
                                     this.workingSnapshot.preventOtherVillagerTrampling(),
+                                    next,
+                                    this.workingSnapshot.preventEmptyPlayerTrampling(),
+                                    this.workingSnapshot.preventEmptyFarmerVillagerTrampling(),
+                                    this.workingSnapshot.preventEmptyBabyVillagerTrampling(),
+                                    this.workingSnapshot.preventEmptyOtherVillagerTrampling(),
+                                    this.workingSnapshot.preventEmptyMobTrampling(),
                                     this.workingSnapshot.minFeatherFallingLevel(),
                                     this.workingSnapshot.maxSafeFallDistance());
                             commitSingleChange(updated, server -> ModGameRules.setPreventMobTrampling(server, next));
@@ -394,12 +402,16 @@ public class NoCropTrampleConfigScreen extends Screen {
                             int next = (this.workingSnapshot.minFeatherFallingLevel() + 1)
                                     % (ConfigSnapshot.MAX_FEATHER_FALLING_LEVEL + 1);
                             ConfigSnapshot updated = new ConfigSnapshot(
-                                    this.workingSnapshot.preventEmptyTrampling(),
                                     this.workingSnapshot.preventPlayerTrampling(),
+                                    this.workingSnapshot.preventFarmerVillagerTrampling(),
+                                    this.workingSnapshot.preventBabyVillagerTrampling(),
+                                    this.workingSnapshot.preventOtherVillagerTrampling(),
                                     this.workingSnapshot.preventMobTrampling(),
-                            this.workingSnapshot.preventFarmerVillagerTrampling(),
-                            this.workingSnapshot.preventBabyVillagerTrampling(),
-                            this.workingSnapshot.preventOtherVillagerTrampling(),
+                                    this.workingSnapshot.preventEmptyPlayerTrampling(),
+                                    this.workingSnapshot.preventEmptyFarmerVillagerTrampling(),
+                                    this.workingSnapshot.preventEmptyBabyVillagerTrampling(),
+                                    this.workingSnapshot.preventEmptyOtherVillagerTrampling(),
+                                    this.workingSnapshot.preventEmptyMobTrampling(),
                                     next,
                                     this.workingSnapshot.maxSafeFallDistance());
                             commitSingleChange(updated, server -> ModGameRules.setMinFeatherFallingLevel(server, next));
@@ -416,12 +428,16 @@ public class NoCropTrampleConfigScreen extends Screen {
                 snapshot.maxSafeFallDistance(), editable,
                 newDistance -> {
                     ConfigSnapshot updated = new ConfigSnapshot(
-                            this.workingSnapshot.preventEmptyTrampling(),
                             this.workingSnapshot.preventPlayerTrampling(),
+                            this.workingSnapshot.preventFarmerVillagerTrampling(),
+                            this.workingSnapshot.preventBabyVillagerTrampling(),
+                            this.workingSnapshot.preventOtherVillagerTrampling(),
                             this.workingSnapshot.preventMobTrampling(),
-                                    this.workingSnapshot.preventFarmerVillagerTrampling(),
-                                    this.workingSnapshot.preventBabyVillagerTrampling(),
-                                    this.workingSnapshot.preventOtherVillagerTrampling(),
+                            this.workingSnapshot.preventEmptyPlayerTrampling(),
+                            this.workingSnapshot.preventEmptyFarmerVillagerTrampling(),
+                            this.workingSnapshot.preventEmptyBabyVillagerTrampling(),
+                            this.workingSnapshot.preventEmptyOtherVillagerTrampling(),
+                            this.workingSnapshot.preventEmptyMobTrampling(),
                             this.workingSnapshot.minFeatherFallingLevel(),
                             newDistance);
                     commitSingleChange(updated, server -> ModGameRules.setMaxSafeFallDistance(server, newDistance));

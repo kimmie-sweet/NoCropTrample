@@ -88,6 +88,40 @@ class TrampleRulesTest {
                 config(true, true, false, 0, 0)));
     }
 
+
+    @Test
+    void plantedAndEmptyFarmlandUseIndependentEntityCategoryRules() {
+        ConfigSnapshot c = new ConfigSnapshot(
+                true, false, false, false, false,
+                false, true, false, false, false,
+                0, 0);
+        // Planted farmland: player only.
+        assertTrue(TrampleRules.categoryRule(true, false, false, false, true, c));
+        assertFalse(TrampleRules.categoryRule(false, true, false, true, true, c));
+        assertFalse(TrampleRules.categoryRule(false, true, true, false, true, c));
+        // Empty farmland: adult farmer villagers only.
+        assertFalse(TrampleRules.categoryRule(true, false, false, false, false, c));
+        assertTrue(TrampleRules.categoryRule(false, true, false, true, false, c));
+        assertFalse(TrampleRules.categoryRule(false, true, true, false, false, c));
+        assertFalse(TrampleRules.categoryRule(false, true, false, false, false, c));
+        assertFalse(TrampleRules.categoryRule(false, false, false, false, false, c));
+    }
+
+    @Test
+    void allTramplingPreventionDefaultsAreOff() {
+        ConfigSnapshot d = ConfigSnapshot.DEFAULTS;
+        assertFalse(d.preventPlayerTrampling());
+        assertFalse(d.preventFarmerVillagerTrampling());
+        assertFalse(d.preventBabyVillagerTrampling());
+        assertFalse(d.preventOtherVillagerTrampling());
+        assertFalse(d.preventMobTrampling());
+        assertFalse(d.preventEmptyPlayerTrampling());
+        assertFalse(d.preventEmptyFarmerVillagerTrampling());
+        assertFalse(d.preventEmptyBabyVillagerTrampling());
+        assertFalse(d.preventEmptyOtherVillagerTrampling());
+        assertFalse(d.preventEmptyMobTrampling());
+    }
+
     @Test
     void featherFallingRequirementAppliesToPlayersOnPlantedAndEmpty() {
         ConfigSnapshot requireFf2 = config(true, true, true, 2, 0);

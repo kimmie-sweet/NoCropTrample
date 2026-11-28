@@ -8,224 +8,50 @@ import com.murqin.nocroptrample.config.ModConfig;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.flag.FeatureFlagSet;
-import net.minecraft.world.level.gamerules.GameRule;
-import net.minecraft.world.level.gamerules.GameRuleCategory;
-import net.minecraft.world.level.gamerules.GameRuleType;
-import net.minecraft.world.level.gamerules.GameRuleTypeVisitor;
-import net.minecraft.world.level.gamerules.GameRules;
-
-import java.util.List;
-import java.util.Objects;
+import net.minecraft.world.level.gamerules.*;
+import java.util.*;
 import java.util.function.BiConsumer;
 
-/**
- * Registers and manages NoCropTrample's per-world Minecraft GameRules.
- * <p>
- * Built-in defaults are seeded from {@link ModConfig} at startup so global
- * config sets defaults for new worlds, while active worlds store and persist
- * their own overrides in {@code level.dat}.
- * </p>
- */
+/** Per-world rules controlling crop-covered and empty farmland independently. */
 public final class ModGameRules {
-
-    public static final Identifier ID_PREVENT_EMPTY =
-            Identifier.fromNamespaceAndPath(NoCropTrample.MOD_ID, "prevent_empty_trampling");
-    public static final Identifier ID_PREVENT_PLAYER =
-            Identifier.fromNamespaceAndPath(NoCropTrample.MOD_ID, "prevent_player_trampling");
-    public static final Identifier ID_PREVENT_MOB =
-            Identifier.fromNamespaceAndPath(NoCropTrample.MOD_ID, "prevent_mob_trampling");
-    public static final Identifier ID_PREVENT_FARMER_VILLAGER =
-            Identifier.fromNamespaceAndPath(NoCropTrample.MOD_ID, "prevent_farmer_villager_trampling");
-    public static final Identifier ID_PREVENT_BABY_VILLAGER =
-            Identifier.fromNamespaceAndPath(NoCropTrample.MOD_ID, "prevent_baby_villager_trampling");
-    public static final Identifier ID_PREVENT_OTHER_VILLAGER =
-            Identifier.fromNamespaceAndPath(NoCropTrample.MOD_ID, "prevent_other_villager_trampling");
-    public static final Identifier ID_MIN_FEATHER_FALLING =
-            Identifier.fromNamespaceAndPath(NoCropTrample.MOD_ID, "min_feather_falling_level");
-    public static final Identifier ID_MAX_SAFE_FALL_DISTANCE =
-            Identifier.fromNamespaceAndPath(NoCropTrample.MOD_ID, "max_safe_fall_distance");
-
-    public static volatile GameRule<Boolean> preventEmptyTrampling;
-    public static volatile GameRule<Boolean> preventPlayerTrampling;
-    public static volatile GameRule<Boolean> preventMobTrampling;
-    public static volatile GameRule<Boolean> preventFarmerVillagerTrampling;
-    public static volatile GameRule<Boolean> preventBabyVillagerTrampling;
-    public static volatile GameRule<Boolean> preventOtherVillagerTrampling;
-    public static volatile GameRule<Integer> minFeatherFallingLevel;
-    public static volatile GameRule<Integer> maxSafeFallDistance;
-
-    private static volatile List<GameRule<?>> allRules = List.of();
-
-    private ModGameRules() {
+    private static final String[] NAMES={"player","farmer_villager","baby_villager","other_villager","mob","empty_player","empty_farmer_villager","empty_baby_villager","empty_other_villager","empty_mob"};
+    private static final Identifier[] IDS=new Identifier[NAMES.length];
+    public static volatile GameRule<Boolean> preventPlayerTrampling, preventFarmerVillagerTrampling, preventBabyVillagerTrampling, preventOtherVillagerTrampling, preventMobTrampling;
+    public static volatile GameRule<Boolean> preventEmptyPlayerTrampling, preventEmptyFarmerVillagerTrampling, preventEmptyBabyVillagerTrampling, preventEmptyOtherVillagerTrampling, preventEmptyMobTrampling;
+    public static volatile GameRule<Integer> minFeatherFallingLevel, maxSafeFallDistance;
+    private static volatile List<GameRule<?>> allRules=List.of();
+    static { for(int i=0;i<NAMES.length;i++) IDS[i]=Identifier.fromNamespaceAndPath(NoCropTrample.MOD_ID,"prevent_"+NAMES[i]+"_trampling"); }
+    private ModGameRules() {}
+    public static void registerAll(BiConsumer<Identifier,GameRule<?>> registrar) {
+        if(isRegistered()) return; ConfigSnapshot d=ModConfig.snapshot();
+        preventPlayerTrampling=bool(d.preventPlayerTrampling()); preventFarmerVillagerTrampling=bool(d.preventFarmerVillagerTrampling()); preventBabyVillagerTrampling=bool(d.preventBabyVillagerTrampling()); preventOtherVillagerTrampling=bool(d.preventOtherVillagerTrampling()); preventMobTrampling=bool(d.preventMobTrampling());
+        preventEmptyPlayerTrampling=bool(d.preventEmptyPlayerTrampling()); preventEmptyFarmerVillagerTrampling=bool(d.preventEmptyFarmerVillagerTrampling()); preventEmptyBabyVillagerTrampling=bool(d.preventEmptyBabyVillagerTrampling()); preventEmptyOtherVillagerTrampling=bool(d.preventEmptyOtherVillagerTrampling()); preventEmptyMobTrampling=bool(d.preventEmptyMobTrampling());
+        minFeatherFallingLevel=integer(d.minFeatherFallingLevel(),0,4); maxSafeFallDistance=integer(d.maxSafeFallDistance(),0,100);
+        GameRule<?>[] rs={preventPlayerTrampling,preventFarmerVillagerTrampling,preventBabyVillagerTrampling,preventOtherVillagerTrampling,preventMobTrampling,preventEmptyPlayerTrampling,preventEmptyFarmerVillagerTrampling,preventEmptyBabyVillagerTrampling,preventEmptyOtherVillagerTrampling,preventEmptyMobTrampling,minFeatherFallingLevel,maxSafeFallDistance};
+        for(int i=0;i<rs.length;i++) registrar.accept(i<NAMES.length?IDS[i]:Identifier.fromNamespaceAndPath(NoCropTrample.MOD_ID,i==10?"min_feather_falling_level":"max_safe_fall_distance"),rs[i]);
+        allRules=List.of(rs);
     }
-
-    public static void registerAll(BiConsumer<Identifier, GameRule<?>> registrar) {
-        if (isRegistered()) {
-            return;
-        }
-        ConfigSnapshot defaults = ModConfig.snapshot();
-
-        preventEmptyTrampling = booleanRule(defaults.preventEmptyTrampling());
-        preventPlayerTrampling = booleanRule(defaults.preventPlayerTrampling());
-        preventMobTrampling = booleanRule(defaults.preventMobTrampling());
-        preventFarmerVillagerTrampling = booleanRule(defaults.preventFarmerVillagerTrampling());
-        preventBabyVillagerTrampling = booleanRule(defaults.preventBabyVillagerTrampling());
-        preventOtherVillagerTrampling = booleanRule(defaults.preventOtherVillagerTrampling());
-        minFeatherFallingLevel = integerRule(
-                defaults.minFeatherFallingLevel(),
-                ConfigSnapshot.MIN_FEATHER_FALLING_LEVEL,
-                ConfigSnapshot.MAX_FEATHER_FALLING_LEVEL);
-        maxSafeFallDistance = integerRule(
-                defaults.maxSafeFallDistance(),
-                ConfigSnapshot.MIN_SAFE_FALL_DISTANCE,
-                ConfigSnapshot.MAX_SAFE_FALL_DISTANCE);
-
-        registrar.accept(ID_PREVENT_EMPTY, preventEmptyTrampling);
-        registrar.accept(ID_PREVENT_PLAYER, preventPlayerTrampling);
-        registrar.accept(ID_PREVENT_MOB, preventMobTrampling);
-        registrar.accept(ID_PREVENT_FARMER_VILLAGER, preventFarmerVillagerTrampling);
-        registrar.accept(ID_PREVENT_BABY_VILLAGER, preventBabyVillagerTrampling);
-        registrar.accept(ID_PREVENT_OTHER_VILLAGER, preventOtherVillagerTrampling);
-        registrar.accept(ID_MIN_FEATHER_FALLING, minFeatherFallingLevel);
-        registrar.accept(ID_MAX_SAFE_FALL_DISTANCE, maxSafeFallDistance);
-
-        allRules = List.of(
-                preventEmptyTrampling,
-                preventPlayerTrampling,
-                preventMobTrampling,
-                preventFarmerVillagerTrampling,
-                preventBabyVillagerTrampling,
-                preventOtherVillagerTrampling,
-                minFeatherFallingLevel,
-                maxSafeFallDistance);
-    }
-
-    public static boolean isRegistered() {
-        return !allRules.isEmpty();
-    }
-
-    public static List<GameRule<?>> allRules() {
-        return allRules;
-    }
-
-    public static boolean isModRule(GameRule<?> rule) {
-        return rule != null && (rule == preventEmptyTrampling
-                || rule == preventPlayerTrampling
-                || rule == preventMobTrampling
-                || rule == preventFarmerVillagerTrampling
-                || rule == preventBabyVillagerTrampling
-                || rule == preventOtherVillagerTrampling
-                || rule == minFeatherFallingLevel
-                || rule == maxSafeFallDistance);
-    }
-
-    public static ConfigSnapshot snapshot(GameRules rules) {
-        if (rules == null || !isRegistered()) {
-            return ModConfig.snapshot();
-        }
-        return new ConfigSnapshot(
-                rules.get(preventEmptyTrampling),
-                rules.get(preventPlayerTrampling),
-                rules.get(preventMobTrampling),
-                rules.get(preventFarmerVillagerTrampling),
-                rules.get(preventBabyVillagerTrampling),
-                rules.get(preventOtherVillagerTrampling),
-                rules.get(minFeatherFallingLevel),
-                rules.get(maxSafeFallDistance));
-    }
-
-    public static void setPreventEmptyTrampling(MinecraftServer server, boolean value) {
-        setIfChanged(server, preventEmptyTrampling, value);
-    }
-
-    public static void setPreventPlayerTrampling(MinecraftServer server, boolean value) {
-        setIfChanged(server, preventPlayerTrampling, value);
-    }
-
-    public static void setPreventMobTrampling(MinecraftServer server, boolean value) {
-        setIfChanged(server, preventMobTrampling, value);
-    }
-
-    public static void setPreventFarmerVillagerTrampling(MinecraftServer server, boolean value) {
-        setIfChanged(server, preventFarmerVillagerTrampling, value);
-    }
-
-    public static void setPreventBabyVillagerTrampling(MinecraftServer server, boolean value) {
-        setIfChanged(server, preventBabyVillagerTrampling, value);
-    }
-
-    public static void setPreventOtherVillagerTrampling(MinecraftServer server, boolean value) {
-        setIfChanged(server, preventOtherVillagerTrampling, value);
-    }
-
-    public static void setMinFeatherFallingLevel(MinecraftServer server, int level) {
-        setIfChanged(server, minFeatherFallingLevel, ConfigSnapshot.clampFeatherFallingLevel(level));
-    }
-
-    public static void setMaxSafeFallDistance(MinecraftServer server, int blocks) {
-        setIfChanged(server, maxSafeFallDistance, ConfigSnapshot.clampFallDistance(blocks));
-    }
-
-    public static void applySnapshot(MinecraftServer server, ConfigSnapshot snapshot) {
-        setPreventEmptyTrampling(server, snapshot.preventEmptyTrampling());
-        setPreventPlayerTrampling(server, snapshot.preventPlayerTrampling());
-        setPreventMobTrampling(server, snapshot.preventMobTrampling());
-        setPreventFarmerVillagerTrampling(server, snapshot.preventFarmerVillagerTrampling());
-        setPreventBabyVillagerTrampling(server, snapshot.preventBabyVillagerTrampling());
-        setPreventOtherVillagerTrampling(server, snapshot.preventOtherVillagerTrampling());
-        setMinFeatherFallingLevel(server, snapshot.minFeatherFallingLevel());
-        setMaxSafeFallDistance(server, snapshot.maxSafeFallDistance());
-    }
-
-    /**
-     * Applies a snapshot directly to a {@link GameRules} instance without a server
-     * (used to seed newly opened Create World screens from updated defaults).
-     */
-    public static void applySnapshotToRules(GameRules rules, ConfigSnapshot snapshot) {
-        if (rules == null || snapshot == null || !isRegistered()) {
-            return;
-        }
-        rules.set(preventEmptyTrampling, snapshot.preventEmptyTrampling(), null);
-        rules.set(preventPlayerTrampling, snapshot.preventPlayerTrampling(), null);
-        rules.set(preventMobTrampling, snapshot.preventMobTrampling(), null);
-        rules.set(preventFarmerVillagerTrampling, snapshot.preventFarmerVillagerTrampling(), null);
-        rules.set(preventBabyVillagerTrampling, snapshot.preventBabyVillagerTrampling(), null);
-        rules.set(preventOtherVillagerTrampling, snapshot.preventOtherVillagerTrampling(), null);
-        rules.set(minFeatherFallingLevel, snapshot.minFeatherFallingLevel(), null);
-        rules.set(maxSafeFallDistance, snapshot.maxSafeFallDistance(), null);
-    }
-
-    private static <T> void setIfChanged(MinecraftServer server, GameRule<T> rule, T value) {
-        if (server == null || rule == null) {
-            return;
-        }
-        GameRules rules = server.getGameRules();
-        if (!Objects.equals(rules.get(rule), value)) {
-            rules.set(rule, value, server);
-        }
-    }
-
-    private static GameRule<Boolean> booleanRule(boolean defaultValue) {
-        return new GameRule<>(
-                GameRuleCategory.MISC,
-                GameRuleType.BOOL,
-                BoolArgumentType.bool(),
-                GameRuleTypeVisitor::visitBoolean,
-                Codec.BOOL,
-                b -> b ? 1 : 0,
-                defaultValue,
-                FeatureFlagSet.of());
-    }
-
-    private static GameRule<Integer> integerRule(int defaultValue, int min, int max) {
-        return new GameRule<>(
-                GameRuleCategory.MISC,
-                GameRuleType.INT,
-                IntegerArgumentType.integer(min, max),
-                GameRuleTypeVisitor::visitInteger,
-                Codec.intRange(min, max),
-                i -> i,
-                defaultValue,
-                FeatureFlagSet.of());
-    }
+    public static boolean isRegistered(){return !allRules.isEmpty();}
+    public static List<GameRule<?>> allRules(){return allRules;}
+    public static boolean isModRule(GameRule<?> r){return allRules.contains(r);}
+    public static ConfigSnapshot snapshot(GameRules r){if(r==null||!isRegistered())return ModConfig.snapshot(); return new ConfigSnapshot(
+        r.get(preventPlayerTrampling),r.get(preventFarmerVillagerTrampling),r.get(preventBabyVillagerTrampling),r.get(preventOtherVillagerTrampling),r.get(preventMobTrampling),
+        r.get(preventEmptyPlayerTrampling),r.get(preventEmptyFarmerVillagerTrampling),r.get(preventEmptyBabyVillagerTrampling),r.get(preventEmptyOtherVillagerTrampling),r.get(preventEmptyMobTrampling),r.get(minFeatherFallingLevel),r.get(maxSafeFallDistance));}
+    public static void applySnapshot(MinecraftServer s,ConfigSnapshot c){if(s==null||c==null)return; GameRules r=s.getGameRules();
+        set(s,preventPlayerTrampling,c.preventPlayerTrampling());set(s,preventFarmerVillagerTrampling,c.preventFarmerVillagerTrampling());set(s,preventBabyVillagerTrampling,c.preventBabyVillagerTrampling());set(s,preventOtherVillagerTrampling,c.preventOtherVillagerTrampling());set(s,preventMobTrampling,c.preventMobTrampling());
+        set(s,preventEmptyPlayerTrampling,c.preventEmptyPlayerTrampling());set(s,preventEmptyFarmerVillagerTrampling,c.preventEmptyFarmerVillagerTrampling());set(s,preventEmptyBabyVillagerTrampling,c.preventEmptyBabyVillagerTrampling());set(s,preventEmptyOtherVillagerTrampling,c.preventEmptyOtherVillagerTrampling());set(s,preventEmptyMobTrampling,c.preventEmptyMobTrampling());set(s,minFeatherFallingLevel,c.minFeatherFallingLevel());set(s,maxSafeFallDistance,c.maxSafeFallDistance());}
+    public static void applySnapshotToRules(GameRules r,ConfigSnapshot c){if(r==null||c==null||!isRegistered())return;
+        r.set(preventPlayerTrampling,c.preventPlayerTrampling(),null);r.set(preventFarmerVillagerTrampling,c.preventFarmerVillagerTrampling(),null);r.set(preventBabyVillagerTrampling,c.preventBabyVillagerTrampling(),null);r.set(preventOtherVillagerTrampling,c.preventOtherVillagerTrampling(),null);r.set(preventMobTrampling,c.preventMobTrampling(),null);
+        r.set(preventEmptyPlayerTrampling,c.preventEmptyPlayerTrampling(),null);r.set(preventEmptyFarmerVillagerTrampling,c.preventEmptyFarmerVillagerTrampling(),null);r.set(preventEmptyBabyVillagerTrampling,c.preventEmptyBabyVillagerTrampling(),null);r.set(preventEmptyOtherVillagerTrampling,c.preventEmptyOtherVillagerTrampling(),null);r.set(preventEmptyMobTrampling,c.preventEmptyMobTrampling(),null);r.set(minFeatherFallingLevel,c.minFeatherFallingLevel(),null);r.set(maxSafeFallDistance,c.maxSafeFallDistance(),null);}
+    public static void setPreventEmptyTrampling(MinecraftServer s,boolean v){set(s,preventEmptyPlayerTrampling,v);set(s,preventEmptyFarmerVillagerTrampling,v);set(s,preventEmptyBabyVillagerTrampling,v);set(s,preventEmptyOtherVillagerTrampling,v);set(s,preventEmptyMobTrampling,v);}
+    public static void setPreventPlayerTrampling(MinecraftServer s,boolean v){set(s,preventPlayerTrampling,v);}
+    public static void setPreventMobTrampling(MinecraftServer s,boolean v){set(s,preventMobTrampling,v);}
+    public static void setPreventFarmerVillagerTrampling(MinecraftServer s,boolean v){set(s,preventFarmerVillagerTrampling,v);}
+    public static void setPreventBabyVillagerTrampling(MinecraftServer s,boolean v){set(s,preventBabyVillagerTrampling,v);}
+    public static void setPreventOtherVillagerTrampling(MinecraftServer s,boolean v){set(s,preventOtherVillagerTrampling,v);}
+    public static void setEmptyPlayer(MinecraftServer s,boolean v){set(s,preventEmptyPlayerTrampling,v);} public static void setEmptyFarmer(MinecraftServer s,boolean v){set(s,preventEmptyFarmerVillagerTrampling,v);} public static void setEmptyBaby(MinecraftServer s,boolean v){set(s,preventEmptyBabyVillagerTrampling,v);} public static void setEmptyOtherVillager(MinecraftServer s,boolean v){set(s,preventEmptyOtherVillagerTrampling,v);} public static void setEmptyMob(MinecraftServer s,boolean v){set(s,preventEmptyMobTrampling,v);}
+    public static void setMinFeatherFallingLevel(MinecraftServer s,int v){set(s,minFeatherFallingLevel,ConfigSnapshot.clampFeatherFallingLevel(v));} public static void setMaxSafeFallDistance(MinecraftServer s,int v){set(s,maxSafeFallDistance,ConfigSnapshot.clampFallDistance(v));}
+    private static <T> void set(MinecraftServer s,GameRule<T> rule,T value){if(s!=null&&rule!=null&&!Objects.equals(s.getGameRules().get(rule),value))s.getGameRules().set(rule,value,s);}
+    private static GameRule<Boolean> bool(boolean d){return new GameRule<>(GameRuleCategory.MISC,GameRuleType.BOOL,BoolArgumentType.bool(),GameRuleTypeVisitor::visitBoolean,Codec.BOOL,b->b?1:0,d,FeatureFlagSet.of());}
+    private static GameRule<Integer> integer(int d,int min,int max){return new GameRule<>(GameRuleCategory.MISC,GameRuleType.INT,IntegerArgumentType.integer(min,max),GameRuleTypeVisitor::visitInteger,Codec.intRange(min,max),i->i,d,FeatureFlagSet.of());}
 }

@@ -41,7 +41,12 @@ public class NoCropTrampleCommand {
     private static final List<String> FEATHER_FALLING_SUGGESTIONS = List.of("0", "1", "2", "3", "4");
     private static final List<String> FALL_DISTANCE_SUGGESTIONS = List.of("0", "1", "2", "3", "4", "5", "10");
 
-    private static final String LABEL_EMPTY = "Empty farmland trampling prevention: ";
+    private static final String LABEL_EMPTY = "All empty farmland categories: ";
+    private static final String LABEL_EMPTY_PLAYER = "Empty farmland / players: ";
+    private static final String LABEL_EMPTY_FARMER = "Empty farmland / farmer villagers: ";
+    private static final String LABEL_EMPTY_BABY = "Empty farmland / baby villagers: ";
+    private static final String LABEL_EMPTY_OTHER_VILLAGER = "Empty farmland / other villagers: ";
+    private static final String LABEL_EMPTY_MOB = "Empty farmland / other mobs: ";
     private static final String LABEL_PLAYER = "Player trampling prevention: ";
     private static final String LABEL_MOB = "Non-villager mob trampling prevention: ";
     private static final String LABEL_FARMER = "Farmer villager trampling prevention: ";
@@ -60,6 +65,11 @@ public class NoCropTrampleCommand {
                 Commands.literal("nocroptrample")
                         .executes(NoCropTrampleCommand::showStatus)
                         .then(buildToggleCommand("empty", StateName.EMPTY, NoCropTrampleCommand::showEmptyStatus))
+                        .then(buildToggleCommand("emptyPlayer", StateName.EMPTY_PLAYER, c -> showCategoryStatus(c, LABEL_EMPTY_PLAYER, ConfigSnapshot::preventEmptyPlayerTrampling)))
+                        .then(buildToggleCommand("emptyFarmerVillager", StateName.EMPTY_FARMER_VILLAGER, c -> showCategoryStatus(c, LABEL_EMPTY_FARMER, ConfigSnapshot::preventEmptyFarmerVillagerTrampling)))
+                        .then(buildToggleCommand("emptyBabyVillager", StateName.EMPTY_BABY_VILLAGER, c -> showCategoryStatus(c, LABEL_EMPTY_BABY, ConfigSnapshot::preventEmptyBabyVillagerTrampling)))
+                        .then(buildToggleCommand("emptyOtherVillager", StateName.EMPTY_OTHER_VILLAGER, c -> showCategoryStatus(c, LABEL_EMPTY_OTHER_VILLAGER, ConfigSnapshot::preventEmptyOtherVillagerTrampling)))
+                        .then(buildToggleCommand("emptyMob", StateName.EMPTY_MOB, c -> showCategoryStatus(c, LABEL_EMPTY_MOB, ConfigSnapshot::preventEmptyMobTrampling)))
                         .then(buildToggleCommand("player", StateName.PLAYER, NoCropTrampleCommand::showPlayerStatus))
                         .then(buildToggleCommand("mob", StateName.MOB, NoCropTrampleCommand::showMobStatus))
                         .then(buildToggleCommand("farmerVillager", StateName.FARMER_VILLAGER, c -> showCategoryStatus(c, LABEL_FARMER, ConfigSnapshot::preventFarmerVillagerTrampling)))
@@ -136,8 +146,11 @@ public class NoCropTrampleCommand {
 
         source.sendSuccess(() -> prefix().append(Component.literal("Status:").withStyle(ChatFormatting.WHITE)), false);
 
-        source.sendSuccess(() -> buildBoolStatusLine(
-                LABEL_EMPTY, config.preventEmptyTrampling(), "empty", showControls), false);
+        source.sendSuccess(() -> buildBoolStatusLine(LABEL_EMPTY_PLAYER, config.preventEmptyPlayerTrampling(), "emptyPlayer", showControls), false);
+        source.sendSuccess(() -> buildBoolStatusLine(LABEL_EMPTY_FARMER, config.preventEmptyFarmerVillagerTrampling(), "emptyFarmerVillager", showControls), false);
+        source.sendSuccess(() -> buildBoolStatusLine(LABEL_EMPTY_BABY, config.preventEmptyBabyVillagerTrampling(), "emptyBabyVillager", showControls), false);
+        source.sendSuccess(() -> buildBoolStatusLine(LABEL_EMPTY_OTHER_VILLAGER, config.preventEmptyOtherVillagerTrampling(), "emptyOtherVillager", showControls), false);
+        source.sendSuccess(() -> buildBoolStatusLine(LABEL_EMPTY_MOB, config.preventEmptyMobTrampling(), "emptyMob", showControls), false);
         source.sendSuccess(() -> buildBoolStatusLine(
                 LABEL_PLAYER, config.preventPlayerTrampling(), "player", showControls), false);
         source.sendSuccess(() -> buildBoolStatusLine(
@@ -299,6 +312,11 @@ public class NoCropTrampleCommand {
                 ModGameRules.setPreventEmptyTrampling(source.getServer(), newState);
                 label = LABEL_EMPTY;
             }
+            case EMPTY_PLAYER -> { ModGameRules.setEmptyPlayer(source.getServer(), newState); label = LABEL_EMPTY_PLAYER; }
+            case EMPTY_FARMER_VILLAGER -> { ModGameRules.setEmptyFarmer(source.getServer(), newState); label = LABEL_EMPTY_FARMER; }
+            case EMPTY_BABY_VILLAGER -> { ModGameRules.setEmptyBaby(source.getServer(), newState); label = LABEL_EMPTY_BABY; }
+            case EMPTY_OTHER_VILLAGER -> { ModGameRules.setEmptyOtherVillager(source.getServer(), newState); label = LABEL_EMPTY_OTHER_VILLAGER; }
+            case EMPTY_MOB -> { ModGameRules.setEmptyMob(source.getServer(), newState); label = LABEL_EMPTY_MOB; }
             case PLAYER -> {
                 ModGameRules.setPreventPlayerTrampling(source.getServer(), newState);
                 label = LABEL_PLAYER;
